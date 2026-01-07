@@ -9,8 +9,8 @@
 
 A comprehensive, systematic approach to mastering data analysis with Pandas. This repository documents practical implementations, methodologies, and best practices for data manipulation and analysis using real-world datasets.
 
-**Initiated:** December 28, 2025
-**Current Phase:** Series Operations & Aggregation Methods
+**Initiated:** December 28, 2025  
+**Current Phase:** Advanced Series Operations & Data Manipulation
 
 ---
 
@@ -24,6 +24,9 @@ pandas-learning-journey/
 │   ├── 2_Series_Deep_Dive.ipynb
 │   ├── 3_Operators.ipynb
 │   ├── 4_Aggregate_Methods.ipynb
+│   ├── 5_Conversion_Methods.ipynb
+│   ├── 6_Manipulation_Methods.ipynb
+│   ├── 7_Indexing_Operations.ipynb
 │   └── ...
 │
 ├── datasets/
@@ -40,7 +43,7 @@ pandas-learning-journey/
 
 ## Learning Roadmap
 
-### Phase 1: Foundation
+### Phase 1: Foundation (Completed)
 
 -   [x] Series Fundamentals
 -   [x] Index Abstraction
@@ -50,12 +53,14 @@ pandas-learning-journey/
 -   [x] Index Alignment
 -   [x] Broadcasting Operations
 -   [x] Aggregate Methods
--   [ ] Boolean Indexing
--   [ ] Method Chaining Patterns
+-   [x] Type Conversion and Memory Optimization
+-   [x] Data Manipulation Techniques
+-   [x] Advanced Indexing Operations
 
-### Phase 2: DataFrames
+### Phase 2: DataFrames (In Progress)
 
 -   [ ] DataFrame Basics
+-   [ ] Multi-column Operations
 -   [ ] Data Selection and Filtering
 -   [ ] Merging and Joining
 -   [ ] GroupBy Operations
@@ -63,9 +68,9 @@ pandas-learning-journey/
 ### Phase 3: Advanced Topics
 
 -   [ ] Time Series Analysis
--   [ ] Missing Data Handling
+-   [ ] Advanced Missing Data Strategies
 -   [ ] Performance Optimization
--   [ ] Custom Functions
+-   [ ] Custom Functions and Vectorization
 
 ### Phase 4: Applied Projects
 
@@ -78,127 +83,309 @@ pandas-learning-journey/
 
 ## Current Work
 
-### Module 1: Series Operations
+### Module 3: Type Conversion and Memory Optimization
 
-**Notebook:** `3_Operators.ipynb`
+**Notebook:** `5_Conversion_Methods.ipynb`
 
 **Core Concepts:**
 
-**Dunder Methods (Magic Methods)**
-Understanding the underlying mechanics of Python operators through double underscore methods.
+**Automatic Type Conversion**
+Pandas provides intelligent type inference and conversion capabilities.
 
 ```python
-# Operator translation
-(2).__add__(4)  # Equivalent to: 2 + 4
-# Result: 6
+# Convert to optimal nullable integer type
+city_mpg.convert_dtypes()
+# Result: int64 → Int64 (supports NA values)
+
+# Explicit type conversion
+city_mpg.astype('Int16')  # Reduce memory footprint
 ```
 
-**Index Alignment**
-Pandas automatically aligns Series by index during operations, creating Cartesian products for duplicate indices.
+**Memory Optimization Strategies**
+
+Understanding data type limits and memory usage:
 
 ```python
-s1 = pd.Series([10, 20, 30], index=[1, 2, 2])
-s2 = pd.Series([35, 44, 53], index=[2, 2, 4])
+# Integer type ranges
+np.iinfo('int64')   # -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
+np.iinfo('uint8')   # 0 to 255
 
-s1 + s2
-# Result:
-# 1     NaN    # No match in s2
-# 2    55.0    # 20 + 35
-# 2    64.0    # 20 + 44
-# 2    65.0    # 30 + 35
-# 2    74.0    # 30 + 44
-# 4     NaN    # No match in s1
+# Float type ranges
+np.finfo('float16')  # ±65,504 (resolution: 0.001)
+np.finfo('float64')  # ±1.798e+308 (resolution: 1e-15)
 ```
 
-**Broadcasting**
-Scalar operations are automatically broadcast across all Series values.
+**Memory Usage Analysis**
 
 ```python
-# Calculate average MPG
-(city_mpg + highway_mpg) / 2
+# Numeric data memory comparison
+city_mpg.nbytes                    # 396,640 bytes (int64)
+city_mpg.astype('Int16').nbytes    # 148,740 bytes (62.5% reduction)
+
+# String/Object memory considerations
+make.nbytes                        # 396,640 bytes (pointer size)
+make.memory_usage(deep=True)       # 2,744,141 bytes (actual strings)
+make.astype('category').memory_usage(deep=True)  # 112,242 bytes (95.9% reduction)
 ```
 
-**Operator Methods with Fill Values**
-Handle missing indices gracefully using the `fill_value` parameter.
+**Categorical Data Optimization**
 
 ```python
-# Use 0 for missing indices instead of NaN
-s1.add(s2, fill_value=0)
-# Result:
-# 1    10.0    # Only in s1, uses 0 for s2
-# 2    55.0    # 20 + 35
-# 2    64.0    # 20 + 44
-# 2    65.0    # 30 + 35
-# 2    74.0    # 30 + 44
-# 4    53.0    # Only in s2, uses 0 for s1
+# Convert to unordered category
+city_mpg.astype('category')
+# Categories: 142 unique values
+
+# Create ordered categorical type
+values = pd.Series(sorted(set(city_mpg)))
+city_type = pd.CategoricalDtype(categories=values, ordered=True)
+city_mpg.astype(city_type)
+# Categories: [6 < 7 < 8 < ... < 153]
 ```
 
-**Method Chaining**
-Compose complex operations through sequential method calls for improved readability.
+**Series to DataFrame Conversion**
 
 ```python
-(city_mpg
- .add(highway_mpg)
- .div(2))
+city_mpg.to_frame()  # Convert Series to single-column DataFrame
 ```
+
+**Key Findings:**
+
+-   **Int16 conversion:** 62.5% memory reduction for numeric data
+-   **Category conversion:** 95.9% memory reduction for string data (from 2.7MB to 112KB)
+-   Ordered categories enable comparison operations
+-   Type selection critical for large datasets
 
 ---
 
-### Module 2: Aggregate Methods
+### Module 4: Data Manipulation Methods
 
-**Notebook:** `4_Aggregate_Methods.ipynb`
+**Notebook:** `6_Manipulation_Methods.ipynb`
 
-**Statistical Aggregations**
+**Performance-Critical Operations**
 
-Core statistical methods for data summarization:
-
-```python
-city_mpg.mean()          # 20.59 MPG average
-city_mpg.is_unique       # False (duplicate values exist)
-city_mpg.is_monotonic_increasing  # False
-```
-
-**Quantile Analysis**
+**Apply vs Vectorized Operations**
 
 ```python
-# Default: 50th percentile (median)
-city_mpg.quantile()      # 18.0
+# Custom function with .apply() - SLOW
+def get20(val):
+    return val > 20
 
-# Multiple quantiles
-city_mpg.quantile([.1, .5, .9])
-# 0.1    13.0
-# 0.5    18.0
-# 0.9    26.0
+city_mpg.apply(get20)       # 4.08 ms
+city_mpg.gt(20)            # 22.5 μs (181x faster)
 ```
 
-**Boolean Aggregations**
-
-Combining boolean masks with aggregation methods for analytical insights.
+**Efficient Data Generalization**
 
 ```python
-# Count of vehicles with MPG > 20
-city_mpg.gt(20).sum()    # 14,686 vehicles
+# Group manufacturers into categories
+top5 = make.value_counts().index[:5]
 
-# Percentage of vehicles with MPG > 20
-city_mpg.gt(20).mul(100).mean()  # 29.62%
+# Method 1: .apply() with custom function
+make.apply(generalize_top5)                    # 24.5 ms
+
+# Method 2: .where() - PREFERRED
+make.where(make.isin(top5), other='Other')     # 2.08 ms (12x faster)
+
+# Method 3: .mask() - Inverse logic
+make.mask(~make.isin(top5), other='Others')    # Same performance
 ```
 
-**Custom Aggregation with `.agg()`**
-
-Apply multiple aggregation functions simultaneously, including custom functions.
+**Multi-Condition Logic**
 
 ```python
-# Custom aggregation function
-def second_to_last(s):
-    return s.iloc[-2]
+# Approach 1: Chained .where()
+(make
+ .where(make.isin(top5), 'Top10')
+ .where(make.isin(top10), 'Other'))
 
-# Multiple aggregations
-city_mpg.agg(['mean', 'var', 'max', second_to_last])
-# mean               20.59
-# var               207.39
-# max               153.00
-# second_to_last     18.00
+# Approach 2: NumPy select (preferred for complex conditions)
+np.select([make.isin(top5), make.isin(top10)],
+          [make, 'Top10'],
+          'Other')
 ```
+
+**Missing Data Operations**
+
+```python
+# Count missing values
+cyl.isna().sum()  # 1,371 missing cylinder values
+
+# Locate missing data
+missing = cyl.isna()
+make.loc[missing]  # Electric/hybrid vehicles (Tesla, Toyota, Nissan, Ford)
+
+# Fill missing values
+cyl.fillna(0)                    # Fill with constant
+cyl.fillna(cyl.mean())           # Fill with mean
+cyl.ffill()                      # Forward fill
+cyl.interpolate()                # Linear interpolation
+```
+
+**Interpolation Example**
+
+```python
+temp = pd.Series([32, 40, None, 42, 39, 32])
+temp.interpolate()
+# Result: [32.0, 40.0, 41.0, 42.0, 39.0, 32.0]
+```
+
+**Outlier Management with Clipping**
+
+```python
+# Clip values to 5th and 95th percentiles
+city_mpg.clip(
+    lower=city_mpg.quantile(.05),  # 12 MPG
+    upper=city_mpg.quantile(.95)   # 31 MPG
+)
+```
+
+**Sorting Operations**
+
+```python
+# Sort by values (index follows)
+city_mpg.sort_values()
+
+# Sort by index
+city_mpg.sort_index()
+
+# Combined operations maintain alignment
+(city_mpg.sort_values() + highway_mpg) / 2
+```
+
+**Deduplication and Ranking**
+
+```python
+# Remove duplicate values
+city_mpg.drop_duplicates()  # 142 unique MPG values from 49,580 records
+
+# Ranking methods
+city_mpg.rank()                      # Average rank for ties
+city_mpg.rank(method='min')          # Minimum rank for ties
+city_mpg.rank(method='dense')        # Dense ranking (no gaps)
+```
+
+**Value Replacement**
+
+```python
+# Simple replacement
+make.replace('Subaru', '昴, スバル')
+
+# Multiple replacements
+make.replace({'Subaru': '昴', 'Toyota': 'トヨタ'})
+```
+
+**Data Binning**
+
+```python
+# Equal-width bins
+pd.cut(city_mpg, 10)  # 10 bins of equal width
+
+# Custom bin edges
+pd.cut(city_mpg, [0, 10, 20, 40, 70, 150])
+
+# Equal-frequency bins (quantile-based)
+pd.qcut(city_mpg, 10)  # 10 bins with equal counts
+```
+
+**Performance Summary:**
+
+-   **Vectorized operations:** 181x faster than .apply()
+-   **.where() method:** 12x faster than .apply() for conditional logic
+-   **Always prefer built-in methods over custom functions**
+
+---
+
+### Module 5: Indexing Operations
+
+**Notebook:** `7_Indexing_Operations.ipynb`
+
+**Index Manipulation**
+
+**Renaming Index**
+
+```python
+# Method 1: Using dictionary mapping
+city2 = city_mpg.rename(make.to_dict())
+
+# Method 2: Using Series directly (preferred)
+city2 = city_mpg.rename(make)
+
+# Result: Index becomes manufacturer names
+# Alfa Romeo    19
+# Ferrari        9
+# Dodge         23
+```
+
+**Resetting Index**
+
+```python
+# Reset to DataFrame with old index as column
+city2.reset_index()
+
+# Drop old index, return Series with default integer index
+city2.reset_index(drop=True)
+```
+
+**Label-Based Indexing with .loc**
+
+```python
+# Single label (may return Series if multiple matches)
+city2.loc['Subaru']  # All 1,036 Subaru entries
+
+# List of labels (always returns Series)
+city2.loc[['Fisker']]  # 4 Fisker entries
+
+# Multiple labels
+city2.loc[['Ferrari', 'Lamborghini']]  # 455 combined entries
+
+# Slicing (INCLUSIVE of both endpoints)
+city2.sort_index().loc['Ferrari':'Lamborghini']  # 13,502 entries
+```
+
+**Position-Based Indexing with .iloc**
+
+```python
+# Single position
+city2.iloc[0]      # First element: 19
+city2.iloc[-1]     # Last element: 16
+
+# Multiple positions
+city2.iloc[[0, 1, -1]]  # First, second, and last
+
+# Slicing (EXCLUSIVE of endpoint)
+city2.iloc[-8:]    # Last 8 elements
+```
+
+**Convenience Methods**
+
+```python
+# Head and tail
+city2.head(3)  # First 3 entries
+city2.tail(3)  # Last 3 entries
+
+# Random sampling
+city2.sample(6, random_state=42)
+# Porsche    20
+# Saab       17
+# Plymouth   19
+```
+
+**Index Filtering**
+
+```python
+# Substring match
+city2.filter(like='rd')  # Returns all 'Ford' entries (3,904 records)
+
+# Regular expression
+city2.filter(regex='(Ford)|(Subaru)')  # 4,939 combined entries
+```
+
+**Key Indexing Concepts:**
+
+-   **.loc:** Label-based, inclusive slicing
+-   **.iloc:** Position-based, exclusive slicing
+-   **Index operations preserve data alignment**
+-   **Filtering enables pattern-based selection**
 
 ---
 
@@ -243,143 +430,198 @@ jupyter notebook
 
 ---
 
-## Key Concepts Covered
+## Key Concepts Reference
 
-### Series Data Structure
+### Type Conversion Methods
 
-**Definition:** One-dimensional labeled array capable of holding any data type.
+| Method              | Purpose                           | Example                 |
+| ------------------- | --------------------------------- | ----------------------- |
+| `.convert_dtypes()` | Automatic optimal type conversion | int64 → Int64           |
+| `.astype(dtype)`    | Explicit type conversion          | `astype('Int16')`       |
+| `.to_frame()`       | Convert Series to DataFrame       | Single-column DataFrame |
 
-**Core Components:**
+### Memory Optimization Guidelines
 
--   **Index:** Axis labels for data access
--   **Values:** The actual data array
--   **Name:** Optional identifier
--   **dtype:** Data type of elements
+| Data Type      | Use Case             | Memory Impact         |
+| -------------- | -------------------- | --------------------- |
+| `int8`/`int16` | Small integer ranges | 87.5% - 75% reduction |
+| `uint8`        | Non-negative 0-255   | 87.5% reduction       |
+| `float16`      | Low-precision floats | 75% reduction         |
+| `category`     | Repetitive strings   | 90%+ reduction        |
 
-### Operators and Operations
+### Data Manipulation Methods
 
-**Arithmetic Operators:**
+| Method                | Purpose                       | Performance        |
+| --------------------- | ----------------------------- | ------------------ |
+| `.apply(func)`        | Apply function element-wise   | Slow (Python loop) |
+| `.where(cond, other)` | Replace where condition False | Fast (vectorized)  |
+| `.mask(cond, other)`  | Replace where condition True  | Fast (vectorized)  |
+| `.fillna(value)`      | Fill missing values           | Fast               |
+| `.interpolate()`      | Interpolate missing values    | Medium             |
+| `.clip(lower, upper)` | Limit value ranges            | Fast               |
+| `.sort_values()`      | Sort by values                | Medium             |
+| `.drop_duplicates()`  | Remove duplicates             | Medium             |
+| `.rank()`             | Calculate ranks               | Medium             |
+| `.replace(old, new)`  | Replace specific values       | Fast               |
 
-| Operator | Method   | Description    |
-| -------- | -------- | -------------- |
-| `+`      | `.add()` | Addition       |
-| `-`      | `.sub()` | Subtraction    |
-| `*`      | `.mul()` | Multiplication |
-| `/`      | `.div()` | Division       |
-| `**`     | `.pow()` | Exponentiation |
-| `%`      | `.mod()` | Modulo         |
+### Binning Functions
 
-**Comparison Operators:**
+| Function             | Method               | Output                   |
+| -------------------- | -------------------- | ------------------------ |
+| `pd.cut(data, bins)` | Equal-width bins     | Categorical intervals    |
+| `pd.qcut(data, q)`   | Equal-frequency bins | Quantile-based intervals |
 
-| Operator | Method  | Description           |
-| -------- | ------- | --------------------- |
-| `==`     | `.eq()` | Equal to              |
-| `!=`     | `.ne()` | Not equal to          |
-| `>`      | `.gt()` | Greater than          |
-| `>=`     | `.ge()` | Greater than or equal |
-| `<`      | `.lt()` | Less than             |
-| `<=`     | `.le()` | Less than or equal    |
+### Indexing Attributes
 
-### Aggregation Methods
+| Attribute    | Type           | Slicing Behavior    |
+| ------------ | -------------- | ------------------- |
+| `.loc[]`     | Label-based    | Inclusive endpoints |
+| `.iloc[]`    | Position-based | Exclusive endpoint  |
+| `.head(n)`   | First n rows   | N/A                 |
+| `.tail(n)`   | Last n rows    | N/A                 |
+| `.sample(n)` | Random n rows  | N/A                 |
 
-**Statistical Methods:**
+---
 
-| Method        | Purpose             | Returns |
-| ------------- | ------------------- | ------- |
-| `.mean()`     | Arithmetic average  | float   |
-| `.median()`   | Middle value        | float   |
-| `.std()`      | Standard deviation  | float   |
-| `.var()`      | Variance            | float   |
-| `.min()`      | Minimum value       | scalar  |
-| `.max()`      | Maximum value       | scalar  |
-| `.sum()`      | Sum of values       | scalar  |
-| `.count()`    | Non-null count      | int     |
-| `.describe()` | Statistical summary | Series  |
+## Dataset Information
 
-**Quantile Methods:**
+### EPA Vehicle Dataset
 
-| Method                     | Purpose             | Returns         |
-| -------------------------- | ------------------- | --------------- |
-| `.quantile(q)`             | Value at quantile q | float or Series |
-| `.quantile([q1, q2, ...])` | Multiple quantiles  | Series          |
+**Description:** Comprehensive fuel economy data from the U.S. Environmental Protection Agency covering multiple vehicle model years.
 
-**Boolean Properties:**
+**Statistics:**
 
-| Property                   | Description                | Returns |
-| -------------------------- | -------------------------- | ------- |
-| `.is_unique`               | All values unique          | bool    |
-| `.is_monotonic_increasing` | Values strictly increasing | bool    |
-| `.is_monotonic_decreasing` | Values strictly decreasing | bool    |
+-   **Total Records:** 49,580 vehicles
+-   **Total Features:** 83 columns
+-   **Missing Data:** 1,371 cylinder values (electric/hybrid vehicles)
+-   **Unique Manufacturers:** 146 brands
+-   **Primary Analysis Columns:**
+    -   `city08`: City MPG for regular gasoline
+    -   `highway08`: Highway MPG for regular gasoline
+    -   `make`: Vehicle manufacturer
+    -   `cylinders`: Engine cylinders (1,371 missing)
 
-### Data Loading Best Practices
+**Key Findings:**
 
-```python
-# Handling Mixed-Type Columns
-df = pd.read_csv('data.csv', low_memory=False)
+-   **Average City MPG:** 20.59
+-   **City MPG Variance:** 207.39
+-   **Unique MPG Values:** 142 distinct values
+-   **Vehicles with MPG > 20:** 14,686 (29.62%)
+-   **City MPG Quantiles:**
+    -   5th percentile: 12.0 MPG
+    -   10th percentile: 13.0 MPG
+    -   50th percentile: 18.0 MPG
+    -   90th percentile: 26.0 MPG
+    -   95th percentile: 31.0 MPG
 
-# Or specify dtypes explicitly
-df = pd.read_csv('data.csv', dtype={'column': 'str'})
+**Top 5 Manufacturers by Volume:**
 
-# Selective column loading
-df = pd.read_csv('data.csv', usecols=['col1', 'col2'])
-```
+1. Chevrolet: 4,569 models
+2. Ford: 3,903 models
+3. GMC: 2,882 models
+4. Dodge: 2,718 models
+5. BMW: 2,643 models
+
+**Memory Optimization Results:**
+
+-   **Numeric optimization:** 62.5% reduction (int64 → Int16)
+-   **Categorical optimization:** 95.9% reduction (object → category)
+-   **Total dataset savings:** Potential 70%+ memory reduction
 
 ---
 
 ## Progress Metrics
 
-| Metric              | Count         |
-| ------------------- | ------------- |
-| Days Active         | 3             |
-| Notebooks Completed | 4             |
-| Datasets Analyzed   | 1             |
-| Code Cells Executed | 50+           |
-| Methods Explored    | 422+ (Series) |
-| Concepts Mastered   | 12            |
+| Metric                  | Count |
+| ----------------------- | ----- |
+| Days Active             | 5     |
+| Notebooks Completed     | 7     |
+| Datasets Analyzed       | 1     |
+| Code Cells Executed     | 120+  |
+| Methods Explored        | 500+  |
+| Concepts Mastered       | 35+   |
+| Performance Comparisons | 8     |
+
+---
+
+## Performance Insights
+
+### Operation Speed Comparisons
+
+| Operation               | Slow Method           | Fast Method       | Speedup           |
+| ----------------------- | --------------------- | ----------------- | ----------------- |
+| Boolean comparison      | `.apply(func)` 4.08ms | `.gt()` 22.5μs    | **181x**          |
+| Conditional replacement | `.apply()` 24.5ms     | `.where()` 2.08ms | **12x**           |
+| String memory           | `object` 2.74MB       | `category` 112KB  | **24x** reduction |
+
+### Best Practices Learned
+
+1. **Always prefer vectorized operations over .apply()**
+2. **Use categorical dtype for repetitive string data**
+3. **Choose appropriate numeric types based on value ranges**
+4. **Use .where()/.mask() instead of .apply() for conditionals**
+5. **Leverage np.select() for complex multi-condition logic**
+6. **Consider memory_usage(deep=True) for actual memory footprint**
+7. **Use .loc for label-based indexing, .iloc for position-based**
+8. **Remember .loc slicing is inclusive, .iloc is exclusive**
 
 ---
 
 ## Advanced Techniques Implemented
 
-### Method Chaining Pattern
-
-Improves code readability and maintains functional programming paradigms:
+### Memory-Efficient Data Loading
 
 ```python
-# Traditional approach
-temp1 = city_mpg.add(highway_mpg)
-result = temp1.div(2)
+# Specify dtypes at load time
+df = pd.read_csv('data.csv',
+                 dtype={'make': 'category',
+                        'cylinders': 'Int8'},
+                 low_memory=False)
 
-# Chained approach (preferred)
+# Select specific columns
+df = pd.read_csv('data.csv', usecols=['city08', 'highway08'])
+```
+
+### Chained Operations Pattern
+
+```python
+# Clean, readable data transformations
 result = (city_mpg
-          .add(highway_mpg)
-          .div(2))
+          .fillna(city_mpg.median())
+          .clip(lower=10, upper=40)
+          .astype('Int8')
+          .sort_values()
+          .head(100))
 ```
 
-### Index Alignment Behavior
-
-Understanding Pandas' automatic index matching prevents unexpected results:
+### Multi-Condition Categorical Mapping
 
 ```python
-# Cartesian product for duplicate indices
-# Index 2 appears twice in both Series
-# Results in 2 × 2 = 4 combinations for index 2
-s1[2] = [20, 30]
-s2[2] = [35, 44]
-# Produces: 20+35, 20+44, 30+35, 30+44
+# NumPy select for complex logic
+conditions = [
+    make.isin(top5),
+    make.isin(top10),
+    make.isin(top20)
+]
+choices = [make, 'Top10', 'Top20']
+result = np.select(conditions, choices, default='Other')
 ```
 
-### Custom Aggregation Functions
-
-Extend built-in functionality with domain-specific logic:
+### Index-Based Filtering
 
 ```python
-def second_to_last(series):
-    """Extract penultimate value from Series"""
-    return series.iloc[-2]
+# Create custom index for analysis
+city_by_make = city_mpg.rename(make)
 
-# Use with .agg() for flexible aggregation
-city_mpg.agg([np.mean, np.std, second_to_last])
+# Filter using index patterns
+european = city_by_make.filter(regex='(BMW)|(Mercedes)|(Audi)')
+japanese = city_by_make.filter(regex='(Toyota)|(Honda)|(Nissan)')
+
+# Statistical comparison
+comparison = pd.DataFrame({
+    'European': european.describe(),
+    'Japanese': japanese.describe()
+})
 ```
 
 ---
@@ -396,94 +638,50 @@ city_mpg.agg([np.mean, np.std, second_to_last])
 
 -   [EPA Fuel Economy Data](https://www.fueleconomy.gov/feg/download.shtml)
 
----
+### Key Tutorials Referenced
 
-## Development Notes
-
-### Session Log: January 2, 2026
-
-**Module: Series Deep Dive**
-
--   Implemented comprehensive Series attribute exploration
--   Successfully loaded and processed 49,580-record dataset
--   Identified and handled mixed-type column warnings
--   Documented 422 available Series methods and attributes
-
-### Session Log: January 3, 2026
-
-**Module: Operators & Dunder Methods**
-
--   Explored Python operator implementation through dunder methods
--   Mastered index alignment behavior and Cartesian product generation
--   Implemented broadcasting for scalar operations
--   Applied fill_value parameter for handling misaligned indices
--   Practiced method chaining for cleaner, more readable code
-
-**Module: Aggregate Methods**
-
--   Implemented statistical aggregation methods (mean, var, max)
--   Performed quantile analysis across multiple percentiles
--   Combined boolean operations with aggregations for analytical queries
--   Created custom aggregation functions for domain-specific analysis
--   Analyzed 29.62% of vehicles exceed 20 MPG city fuel economy
-
-**Technical Insights:**
-
--   Index alignment creates NaN for non-matching indices
--   Duplicate indices generate Cartesian products in operations
--   `.agg()` accepts both built-in and custom functions
--   Boolean masks combined with `.sum()` and `.mean()` enable percentage calculations
-
-**Next Steps:**
-
--   Explore boolean indexing and filtering techniques
--   Implement advanced method chaining patterns
--   Study time-based aggregations
--   Analyze correlations between city and highway MPG
+-   Pandas dtype optimization strategies
+-   Vectorization vs iteration performance
+-   Missing data handling methodologies
 
 ---
 
-## Code Examples Repository
-
-### Operator Examples
+### Performance Comparison
 
 ```python
-# Dunder method demonstration
-(2).__add__(4)  # 6
+import time
 
-# Average MPG calculation
-avg_mpg = (city_mpg + highway_mpg) / 2
+# Slow method
+start = time.time()
+result1 = city_mpg.apply(lambda x: x > 20)
+time1 = time.time() - start
 
-# Handling missing indices
-s1.add(s2, fill_value=0)
+# Fast method
+start = time.time()
+result2 = city_mpg.gt(20)
+time2 = time.time() - start
 
-# Method chaining
-(city_mpg
- .add(highway_mpg)
- .div(2)
- .round(2))
+print(f"Speedup: {time1/time2:.0f}x")
 ```
 
-### Aggregation Examples
+### Advanced Manipulation
 
 ```python
-# Basic statistics
-city_mpg.mean()    # Average
-city_mpg.std()     # Standard deviation
-city_mpg.quantile(.75)  # 75th percentile
+# Complex multi-step transformation
+processed = (city_mpg
+             .fillna(city_mpg.median())           # Handle missing
+             .clip(lower=5, upper=50)              # Remove outliers
+             .astype('Int8')                       # Optimize memory
+             .where(city_mpg.gt(15), 'Low')        # Categorize
+             .sort_values()                        # Order
+             .drop_duplicates())                   # Deduplicate
 
-# Boolean aggregations
-efficient_cars = city_mpg.gt(25).sum()
-efficiency_rate = city_mpg.gt(25).mul(100).mean()
-
-# Multiple aggregations
-city_mpg.agg(['mean', 'median', 'std', 'min', 'max'])
-
-# Custom aggregation
-def range_calc(s):
-    return s.max() - s.min()
-
-city_mpg.agg(['mean', range_calc])
+# Multi-condition categorization
+efficiency = np.select(
+    [city_mpg.lt(15), city_mpg.between(15, 25), city_mpg.gt(25)],
+    ['Low', 'Medium', 'High'],
+    default='Unknown'
+)
 ```
 
 ---
@@ -506,6 +704,7 @@ For questions, discussions, or collaboration opportunities, please open an issue
 
 ---
 
-**Last Updated:** January 3, 2026  
+**Last Updated:** January 4, 2026  
 **Repository Status:** Active Development  
-**Current Focus:** Series Operations & Statistical Analysis
+**Current Focus:** Advanced Series Manipulation & Memory Optimization  
+**Next Milestone:** DataFrame Operations
